@@ -117,11 +117,11 @@ export default function StaffInputPage() {
           <label className="block text-sm font-semibold text-gray-700 mb-1">
             日付 <span className="text-red-500">*</span>
           </label>
-          <div className="flex items-center gap-3">
+          <div className="relative">
             <input type="date" name="work_date" value={form.work_date} onChange={handleChange}
-              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 pr-16" />
             {form.work_date && (
-              <span className="text-base font-semibold text-gray-600 w-10 text-center">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-600 pointer-events-none">
                 ({getWeekday(form.work_date)})
               </span>
             )}
