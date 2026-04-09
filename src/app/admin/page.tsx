@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { FACILITY_NAMES, STAFF_NAMES, LESSON_TYPES, SLOT_TYPES, SEPARATE_FACILITIES, PT_FACILITY } from "@/config/settings";
 import type { AttendanceRecord } from "@/types";
 
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-");
-  return `${y}年${m}月${d}日`;
+  const dow = WEEKDAYS[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+  return `${y}年${m}月${d}日（${dow}）`;
 }
 
 function getLessonLabel(value: string): string {

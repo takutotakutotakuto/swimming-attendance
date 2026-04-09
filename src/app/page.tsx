@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import DatePicker, { registerLocale } from "react-datepicker";
-import { ja } from "date-fns/locale/ja";
-import "react-datepicker/dist/react-datepicker.css";
 import { STAFF_NAMES, FACILITY_NAMES, LESSON_TYPES, SLOT_TYPES, SlotKey } from "@/config/settings";
 import type { AttendanceFormData } from "@/types";
 
-registerLocale("ja", ja);
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+function getWeekday(dateStr: string): string {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-");
+  return WEEKDAYS[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+}
 
 function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
@@ -114,22 +117,15 @@ export default function StaffInputPage() {
           <label className="block text-sm font-semibold text-gray-700 mb-1">
             日付 <span className="text-red-500">*</span>
           </label>
-          <DatePicker
-            locale="ja"
-            calendarStartDay={1}
-            dateFormat="yyyy/MM/dd"
-            selected={form.work_date ? new Date(form.work_date) : null}
-            onChange={(date: Date | null) => {
-              if (date) {
-                const y = date.getFullYear();
-                const m = String(date.getMonth() + 1).padStart(2, "0");
-                const d = String(date.getDate()).padStart(2, "0");
-                setForm((prev) => ({ ...prev, work_date: `${y}-${m}-${d}` }));
-              }
-            }}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-            wrapperClassName="w-full"
-          />
+          <div className="flex items-center gap-3">
+            <input type="date" name="work_date" value={form.work_date} onChange={handleChange}
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            {form.work_date && (
+              <span className="text-base font-semibold text-gray-600 w-10 text-center">
+                ({getWeekday(form.work_date)})
+              </span>
+            )}
+          </div>
         </div>
 
         {/* 勤務場所 */}
