@@ -51,10 +51,34 @@ interface SummaryRow {
   separateDays: Record<string, number>;
 }
 
-export default function AdminPage() {
+// 給与計算期間: 前月26日〜当月25日
+// 「〇月分」= その月の26日までが締め日
+function getInitialPeriod() {
   const now = new Date();
-  const [year, setYear]               = useState(now.getFullYear());
-  const [month, setMonth]             = useState(now.getMonth() + 1);
+  const d = now.getDate();
+  // 26日以降は翌月分
+  if (d >= 26) {
+    const m = now.getMonth() + 2; // 来月
+    if (m > 12) return { year: now.getFullYear() + 1, month: 1 };
+    return { year: now.getFullYear(), month: m };
+  }
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+function getPeriodDates(year: number, month: number) {
+  // 前月26日
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear  = month === 1 ? year - 1 : year;
+  const dateFrom  = `${prevYear}-${String(prevMonth).padStart(2, "0")}-26`;
+  // 当月25日
+  const dateTo    = `${year}-${String(month).padStart(2, "0")}-25`;
+  return { dateFrom, dateTo };
+}
+
+export default function AdminPage() {
+  const init = getInitialPeriod();
+  const [year, setYear]               = useState(init.year);
+  const [month, setMonth]             = useState(init.month);
   const [facilityFilter, setFacilityFilter] = useState("");
   const [staffFilter, setStaffFilter] = useState("");
   const [viewMode, setViewMode]       = useState<ViewMode>("staff");
@@ -66,7 +90,8 @@ export default function AdminPage() {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ year: String(year), month: String(month) });
+    const { dateFrom, dateTo } = getPeriodDates(year, month);
+    const params = new URLSearchParams({ dateFrom, dateTo });
     if (facilityFilter) params.set("facility", facilityFilter);
     if (staffFilter)    params.set("staff", staffFilter);
     try {
@@ -102,7 +127,7 @@ export default function AdminPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ジラソーレ勤怠_${year}年${month}月.csv`;
+    a.download = `ジラソーレ勤怠_${year}年${month}月分.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -172,11 +197,22 @@ export default function AdminPage() {
       </div>
 
       {/* 月セレクター */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-2">
         <button onClick={prevMonth} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-gray-600">◀</button>
-        <span className="text-xl font-bold text-gray-800 min-w-[120px] text-center">{year}年{month}月</span>
+        <span className="text-xl font-bold text-gray-800 min-w-[140px] text-center">{year}年{month}月分</span>
         <button onClick={nextMonth} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-gray-600">▶</button>
       </div>
+      {/* 集計期間表示 */}
+      {(() => {
+        const { dateFrom, dateTo } = getPeriodDates(year, month);
+        const [fy, fm, fd] = dateFrom.split("-");
+        const [ty, tm, td] = dateTo.split("-");
+        return (
+          <p className="text-xs text-gray-400 mb-6 text-center">
+            集計期間：{fy}年{fm}月{fd}日 〜 {ty}年{tm}月{td}日
+          </p>
+        );
+      })()}
 
       {/* フィルター */}
       <div className="flex flex-wrap gap-3 mb-6">

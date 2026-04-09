@@ -3,10 +3,12 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const year     = searchParams.get("year");
-  const month    = searchParams.get("month");
-  const facility = searchParams.get("facility");
-  const staff    = searchParams.get("staff");
+  const year      = searchParams.get("year");
+  const month     = searchParams.get("month");
+  const dateFrom  = searchParams.get("dateFrom");
+  const dateTo    = searchParams.get("dateTo");
+  const facility  = searchParams.get("facility");
+  const staff     = searchParams.get("staff");
 
   let query = supabase
     .from("attendance_records")
@@ -14,7 +16,9 @@ export async function GET(request: NextRequest) {
     .order("work_date", { ascending: false })
     .order("created_at", { ascending: false });
 
-  if (year && month) {
+  if (dateFrom && dateTo) {
+    query = query.gte("work_date", dateFrom).lte("work_date", dateTo);
+  } else if (year && month) {
     const paddedMonth = month.padStart(2, "0");
     const startDate   = `${year}-${paddedMonth}-01`;
     const lastDay     = new Date(Number(year), Number(month), 0).getDate();
