@@ -12,6 +12,7 @@ export const STAFF_NAMES: string[] = [
   "田中",
   "三浦",
   "多田",
+  "森泉",
 ];
 
 // 施設名リスト

@@ -196,17 +196,10 @@ export default function StaffInputPage() {
         )}
       </form>
 
-      <div className="mt-8 text-center space-y-2">
-        <div>
-          <a href="/my-records" className="text-sm text-blue-500 hover:text-blue-700 underline">
-            自分の勤務記録を確認・修正する
-          </a>
-        </div>
-        <div>
-          <a href="/admin" className="text-sm text-gray-400 hover:text-gray-600 underline">
-            管理者ダッシュボード
-          </a>
-        </div>
+      <div className="mt-8 text-center">
+        <a href="/my-records" className="text-sm text-blue-500 hover:text-blue-700 underline">
+          自分の勤務記録を確認・修正する
+        </a>
       </div>
     </main>
   );
