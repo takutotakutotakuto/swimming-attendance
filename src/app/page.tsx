@@ -6,10 +6,11 @@ import type { AttendanceFormData } from "@/types";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-function getWeekday(dateStr: string): string {
+function formatDateJa(dateStr: string): string {
   if (!dateStr) return "";
   const [y, m, d] = dateStr.split("-");
-  return WEEKDAYS[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+  const dow = WEEKDAYS[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+  return `${y}年${Number(m)}月${Number(d)}日（${dow}）`;
 }
 
 function getTodayDate(): string {
@@ -118,13 +119,19 @@ export default function StaffInputPage() {
             日付 <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <input type="date" name="work_date" value={form.work_date} onChange={handleChange}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 pr-16" />
-            {form.work_date && (
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-600 pointer-events-none">
-                ({getWeekday(form.work_date)})
-              </span>
-            )}
+            <input
+              type="date"
+              name="work_date"
+              value={form.work_date}
+              onChange={handleChange}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+            <div className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white pointer-events-none">
+              {form.work_date
+                ? <span className="text-gray-800">{formatDateJa(form.work_date)}</span>
+                : <span className="text-gray-400">日付を選択</span>
+              }
+            </div>
           </div>
         </div>
 
