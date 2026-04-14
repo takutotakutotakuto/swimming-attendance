@@ -41,6 +41,7 @@ export default function MyRecordsPage() {
   const [editForm, setEditForm]     = useState<AttendanceFormData | null>(null);
   const [saving, setSaving]         = useState(false);
   const [saveError, setSaveError]   = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
     if (!selectedStaff) return;
@@ -102,6 +103,20 @@ export default function MyRecordsPage() {
       setSaveError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("このレコードを削除しますか？")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/attendance/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("削除に失敗しました");
+      setRecords((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "削除に失敗しました");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -194,10 +209,16 @@ export default function MyRecordsPage() {
                         </div>
                         {r.memo && <p className="text-xs text-gray-400 mt-1 whitespace-pre-wrap">{r.memo}</p>}
                       </div>
-                      <button onClick={() => openEdit(r)}
-                        className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 rounded-lg px-2 py-1 flex-shrink-0">
-                        修正
-                      </button>
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button onClick={() => openEdit(r)}
+                          className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 rounded-lg px-2 py-1">
+                          修正
+                        </button>
+                        <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id}
+                          className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 border border-red-200 rounded-lg px-2 py-1">
+                          {deletingId === r.id ? "削除中" : "削除"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
