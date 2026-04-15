@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { FACILITY_NAMES, STAFF_NAMES, LESSON_TYPES, SLOT_TYPES, SEPARATE_FACILITIES, PT_FACILITY } from "@/config/settings";
-import type { AttendanceRecord } from "@/types";
+import type { AttendanceRecord, AttendanceFormData } from "@/types";
+import type { SlotKey } from "@/config/settings";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -89,6 +90,10 @@ export default function AdminPage() {
   const [loading, setLoading]         = useState(true);
   const [deletingId, setDeletingId]   = useState<string | null>(null);
   const [error, setError]             = useState<string | null>(null);
+  const [editTarget, setEditTarget]   = useState<AttendanceRecord | null>(null);
+  const [editForm, setEditForm]       = useState<AttendanceFormData | null>(null);
+  const [saving, setSaving]           = useState(false);
+  const [saveError, setSaveError]     = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -122,6 +127,48 @@ export default function AdminPage() {
       alert(err instanceof Error ? err.message : "削除に失敗しました");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const openEdit = (r: AttendanceRecord) => {
+    setEditTarget(r);
+    setEditForm({
+      staff_name: r.staff_name, work_date: r.work_date, facility_name: r.facility_name,
+      lesson_type: r.lesson_type, slots_60: r.slots_60, slots_60_sub: r.slots_60_sub,
+      slots_90: r.slots_90, slots_special: r.slots_special, slots_mt: r.slots_mt,
+      slots_mt_sub: r.slots_mt_sub, memo: r.memo ?? "",
+    });
+    setSaveError(null);
+  };
+  const closeEdit = () => { setEditTarget(null); setEditForm(null); };
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setEditForm((prev) => prev ? { ...prev, [e.target.name]: e.target.value } : prev);
+  };
+  const handleEditSlot = (key: SlotKey, delta: number) => {
+    setEditForm((prev) => prev ? { ...prev, [key]: Math.max(0, (prev[key] as number) + delta) } : prev);
+  };
+  const handleSave = async () => {
+    if (!editTarget || !editForm) return;
+    setSaveError(null);
+    if (!editForm.facility_name) return setSaveError("勤務場所を選択してください");
+    if (!editForm.lesson_type)   return setSaveError("業務種別を選択してください");
+    const total = SLOT_TYPES.reduce((s, t) => s + (editForm[t.key] as number), 0);
+    if (total === 0) return setSaveError("コマ数を1つ以上入力してください");
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/attendance/${editTarget.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "保存に失敗しました"); }
+      const { data } = await res.json();
+      setRecords((prev) => prev.map((r) => r.id === editTarget.id ? data : r));
+      closeEdit();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "エラーが発生しました");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -188,6 +235,7 @@ export default function AdminPage() {
   const isStaffView = viewMode === "staff";
 
   return (
+    <>
     <main className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -413,10 +461,16 @@ export default function AdminPage() {
                             <p className="text-xs text-red-600 mt-1 whitespace-pre-wrap">{r.memo}</p>
                           )}
                         </div>
-                        <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id}
-                          className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 border border-red-200 rounded-lg px-2 py-1 flex-shrink-0 transition-colors">
-                          {deletingId === r.id ? "削除中" : "削除"}
-                        </button>
+                        <div className="flex flex-col gap-1 flex-shrink-0">
+                          <button onClick={() => openEdit(r)}
+                            className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 rounded-lg px-2 py-1 transition-colors">
+                            修正
+                          </button>
+                          <button onClick={() => handleDelete(r.id)} disabled={deletingId === r.id}
+                            className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 border border-red-200 rounded-lg px-2 py-1 transition-colors">
+                            {deletingId === r.id ? "削除中" : "削除"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -426,6 +480,96 @@ export default function AdminPage() {
           </section>
         </>
       )}
+      {/* 修正モーダル */}
+      {editTarget && editForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">記録を修正する</h2>
+              <button onClick={closeEdit} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">{editTarget.staff_name}・{formatDate(editTarget.work_date)}</p>
+
+            {saveError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-lg text-red-600 text-sm">{saveError}</div>
+            )}
+
+            <div className="space-y-4">
+              {/* 日付 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">日付</label>
+                <input type="date" name="work_date" value={editForm.work_date} onChange={handleEditChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              </div>
+              {/* 勤務場所 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">勤務場所</label>
+                <select name="facility_name" value={editForm.facility_name} onChange={handleEditChange}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option value="">選択してください</option>
+                  {FACILITY_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              {/* 業務種別 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">業務種別</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {LESSON_TYPES.map((type) => (
+                    <label key={type.value}
+                      className={`flex items-center justify-center border rounded-xl px-3 py-2 cursor-pointer text-sm font-medium transition-colors ${
+                        editForm.lesson_type === type.value
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "border-gray-300 bg-white text-gray-700"
+                      }`}>
+                      <input type="radio" name="lesson_type" value={type.value}
+                        checked={editForm.lesson_type === type.value} onChange={handleEditChange} className="sr-only" />
+                      {type.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {/* コマ数 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">コマ数</label>
+                <div className="space-y-2">
+                  {SLOT_TYPES.map((slot) => (
+                    <div key={slot.key}
+                      className="flex items-center justify-between border border-gray-300 rounded-xl px-4 py-2 bg-white">
+                      <span className="text-sm font-medium text-gray-700 w-36">{slot.label}</span>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => handleEditSlot(slot.key, -1)}
+                          className="w-8 h-8 rounded-full border border-gray-300 text-gray-600 font-bold flex items-center justify-center hover:bg-gray-100">−</button>
+                        <span className="text-lg font-bold text-gray-800 w-5 text-center">{editForm[slot.key]}</span>
+                        <button type="button" onClick={() => handleEditSlot(slot.key, 1)}
+                          className="w-8 h-8 rounded-full border border-blue-400 text-blue-600 font-bold flex items-center justify-center hover:bg-blue-50">＋</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* メモ */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">メモ</label>
+                <textarea name="memo" value={editForm.memo} onChange={handleEditChange} rows={4}
+                  placeholder={`代行元のコーチ名前\n\n本数変更があった場合の理由\n\nその他、特記事項があれば記入してください`}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none" />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={closeEdit}
+                className="flex-1 border border-gray-300 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50">
+                キャンセル
+              </button>
+              <button onClick={handleSave} disabled={saving}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3 rounded-xl transition-colors">
+                {saving ? "保存中..." : "保存する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
+    </>
   );
 }
