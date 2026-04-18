@@ -162,7 +162,7 @@ export default function StaffInputPage() {
             renderCustomHeader={({ date, decreaseMonth, increaseMonth }) => (
               <div className="flex items-center justify-between px-3 py-1">
                 <button onClick={decreaseMonth} className="text-white text-lg font-bold px-2 hover:opacity-70">‹</button>
-                <span className="text-white font-bold text-base">
+                <span className="text-white font-bold text-xl">
                   {date.getFullYear()}年{date.getMonth() + 1}月
                 </span>
                 <button onClick={increaseMonth} className="text-white text-lg font-bold px-2 hover:opacity-70">›</button>
