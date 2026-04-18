@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, forwardRef } from "react";
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ja } from "date-fns/locale/ja";
+import "react-datepicker/dist/react-datepicker.css";
 import { STAFF_NAMES, FACILITY_NAMES, LESSON_TYPES, SLOT_TYPES, SlotKey } from "@/config/settings";
 import type { AttendanceFormData } from "@/types";
+
+registerLocale("ja", ja);
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -16,6 +21,28 @@ function formatDateJa(dateStr: string): string {
 function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
 }
+
+// カスタム日付入力（今のデザインをそのまま維持）
+interface CustomDateInputProps {
+  dateStr: string;
+  value?: string;
+  onClick?: () => void;
+}
+const CustomDateInput = forwardRef<HTMLDivElement, CustomDateInputProps>(
+  ({ onClick, dateStr }, ref) => (
+    <div
+      ref={ref}
+      onClick={onClick}
+      className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white cursor-pointer"
+    >
+      {dateStr
+        ? <span className="text-gray-800">{dateStr}</span>
+        : <span className="text-gray-400">日付を選択</span>
+      }
+    </div>
+  )
+);
+CustomDateInput.displayName = "CustomDateInput";
 
 const initialForm: AttendanceFormData = {
   staff_name: "",
@@ -113,26 +140,26 @@ export default function StaffInputPage() {
           </select>
         </div>
 
-        {/* 日付 */}
+        {/* 日付（月曜始まりカレンダー・今のデザイン） */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
             日付 <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <input
-              type="date"
-              name="work_date"
-              value={form.work_date}
-              onChange={handleChange}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            />
-            <div className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white pointer-events-none">
-              {form.work_date
-                ? <span className="text-gray-800">{formatDateJa(form.work_date)}</span>
-                : <span className="text-gray-400">日付を選択</span>
+          <DatePicker
+            locale="ja"
+            calendarStartDay={1}
+            selected={form.work_date ? new Date(form.work_date + "T00:00:00") : null}
+            onChange={(date: Date | null) => {
+              if (date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                setForm((prev) => ({ ...prev, work_date: `${y}-${m}-${d}` }));
               }
-            </div>
-          </div>
+            }}
+            customInput={<CustomDateInput dateStr={formatDateJa(form.work_date)} />}
+            wrapperClassName="w-full"
+          />
         </div>
 
         {/* 勤務場所 */}
@@ -218,9 +245,11 @@ export default function StaffInputPage() {
         )}
       </form>
 
-      <div className="mt-8 text-center">
-        <a href="/my-records" className="text-sm text-blue-500 hover:text-blue-700 underline">
-          自分の勤務記録を確認・修正する
+      {/* 自分の記録へのリンク（目立つボタン） */}
+      <div className="mt-8">
+        <a href="/my-records"
+          className="flex items-center justify-center gap-2 w-full bg-white border-2 border-blue-400 text-blue-600 font-bold py-4 rounded-xl text-base hover:bg-blue-50 transition-colors">
+          📋 自分の勤務記録を確認・修正する
         </a>
       </div>
     </main>

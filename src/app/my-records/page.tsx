@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { STAFF_NAMES, FACILITY_NAMES, LESSON_TYPES, SLOT_TYPES, SlotKey } from "@/config/settings";
 import type { AttendanceRecord, AttendanceFormData } from "@/types";
 
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-");
-  return `${y}年${m}月${d}日`;
+  const dow = WEEKDAYS[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+  return `${y}年${Number(m)}月${Number(d)}日（${dow}）`;
 }
 function getLessonLabel(value: string): string {
   return LESSON_TYPES.find((t) => t.value === value)?.label ?? value;
@@ -16,39 +19,51 @@ function mtOf(r: AttendanceRecord)     { return r.slots_mt + r.slots_mt_sub; }
 
 function recordToForm(r: AttendanceRecord): AttendanceFormData {
   return {
-    staff_name: r.staff_name,
-    work_date: r.work_date,
-    facility_name: r.facility_name,
-    lesson_type: r.lesson_type,
-    slots_60: r.slots_60,
-    slots_60_sub: r.slots_60_sub,
-    slots_90: r.slots_90,
-    slots_special: r.slots_special,
-    slots_mt: r.slots_mt,
-    slots_mt_sub: r.slots_mt_sub,
-    memo: r.memo ?? "",
+    staff_name: r.staff_name, work_date: r.work_date, facility_name: r.facility_name,
+    lesson_type: r.lesson_type, slots_60: r.slots_60, slots_60_sub: r.slots_60_sub,
+    slots_90: r.slots_90, slots_special: r.slots_special, slots_mt: r.slots_mt,
+    slots_mt_sub: r.slots_mt_sub, memo: r.memo ?? "",
   };
 }
 
-export default function MyRecordsPage() {
+// 給与計算期間（前月26日〜当月25日）
+function getInitialPeriod() {
   const now = new Date();
-  const [selectedStaff, setSelectedStaff] = useState("");
-  const [year,  setYear]  = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [records, setRecords]   = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading]   = useState(false);
-  const [editTarget, setEditTarget] = useState<AttendanceRecord | null>(null);
-  const [editForm, setEditForm]     = useState<AttendanceFormData | null>(null);
-  const [saving, setSaving]         = useState(false);
-  const [saveError, setSaveError]   = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  if (now.getDate() >= 26) {
+    const m = now.getMonth() + 2;
+    if (m > 12) return { year: now.getFullYear() + 1, month: 1 };
+    return { year: now.getFullYear(), month: m };
+  }
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+function getPeriodDates(year: number, month: number) {
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear  = month === 1 ? year - 1 : year;
+  const dateFrom  = `${prevYear}-${String(prevMonth).padStart(2, "0")}-26`;
+  const dateTo    = `${year}-${String(month).padStart(2, "0")}-25`;
+  return { dateFrom, dateTo };
+}
+
+export default function MyRecordsPage() {
+  const init = getInitialPeriod();
+  const [selectedStaff, setSelectedStaff]   = useState("");
+  const [year,  setYear]                    = useState(init.year);
+  const [month, setMonth]                   = useState(init.month);
+  const [facilityFilter, setFacilityFilter] = useState(""); // "" = 全施設
+  const [records, setRecords]               = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading]               = useState(false);
+  const [editTarget, setEditTarget]         = useState<AttendanceRecord | null>(null);
+  const [editForm, setEditForm]             = useState<AttendanceFormData | null>(null);
+  const [saving, setSaving]                 = useState(false);
+  const [saveError, setSaveError]           = useState<string | null>(null);
+  const [deletingId, setDeletingId]         = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
     if (!selectedStaff) return;
     setLoading(true);
-    const params = new URLSearchParams({
-      year: String(year), month: String(month), staff: selectedStaff,
-    });
+    const { dateFrom, dateTo } = getPeriodDates(year, month);
+    const params = new URLSearchParams({ dateFrom, dateTo, staff: selectedStaff });
     try {
       const res  = await fetch(`/api/attendance?${params}`);
       const { data } = await res.json();
@@ -60,13 +75,15 @@ export default function MyRecordsPage() {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-  const prevMonth = () => { if (month === 1) { setYear((y) => y - 1); setMonth(12); } else setMonth((m) => m - 1); };
-  const nextMonth = () => { if (month === 12) { setYear((y) => y + 1); setMonth(1); } else setMonth((m) => m + 1); };
+  const prevMonth = () => {
+    if (month === 1) { setYear((y) => y - 1); setMonth(12); } else setMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    if (month === 12) { setYear((y) => y + 1); setMonth(1); } else setMonth((m) => m + 1);
+  };
 
   const openEdit = (r: AttendanceRecord) => {
-    setEditTarget(r);
-    setEditForm(recordToForm(r));
-    setSaveError(null);
+    setEditTarget(r); setEditForm(recordToForm(r)); setSaveError(null);
   };
   const closeEdit = () => { setEditTarget(null); setEditForm(null); };
 
@@ -84,26 +101,19 @@ export default function MyRecordsPage() {
     if (!editForm.lesson_type)   return setSaveError("業務種別を選択してください");
     const total = SLOT_TYPES.reduce((s, t) => s + (editForm[t.key] as number), 0);
     if (total === 0) return setSaveError("コマ数を1つ以上入力してください");
-
     setSaving(true);
     try {
       const res = await fetch(`/api/attendance/${editTarget.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || "保存に失敗しました");
-      }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "保存に失敗しました"); }
       const { data } = await res.json();
       setRecords((prev) => prev.map((r) => r.id === editTarget.id ? data : r));
       closeEdit();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "エラーが発生しました");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
@@ -115,15 +125,22 @@ export default function MyRecordsPage() {
       setRecords((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : "削除に失敗しました");
-    } finally {
-      setDeletingId(null);
-    }
+    } finally { setDeletingId(null); }
   };
 
-  // 集計
-  const totalLesson = records.reduce((s, r) => s + lessonOf(r), 0);
-  const totalMt     = records.reduce((s, r) => s + mtOf(r), 0);
-  const workDays    = new Set(records.map((r) => r.work_date)).size;
+  // 施設フィルター適用後のレコード
+  const filtered = facilityFilter
+    ? records.filter((r) => r.facility_name === facilityFilter)
+    : records;
+
+  // 集計（フィルター後）
+  const totalLesson = filtered.reduce((s, r) => s + lessonOf(r), 0);
+  const totalMt     = filtered.reduce((s, r) => s + mtOf(r), 0);
+  const workDays    = new Set(filtered.map((r) => r.work_date)).size;
+
+  const { dateFrom, dateTo } = getPeriodDates(year, month);
+  const [fy, fm, fd] = dateFrom.split("-");
+  const [, tm, td]   = dateTo.split("-");
 
   return (
     <main className="max-w-lg mx-auto px-4 py-8">
@@ -144,22 +161,43 @@ export default function MyRecordsPage() {
         </select>
       </div>
 
-      {/* 月セレクター */}
+      {/* 給与期間セレクター */}
       {selectedStaff && (
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <button onClick={prevMonth} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-gray-600">◀</button>
-          <span className="text-lg font-bold text-gray-800 min-w-[110px] text-center">{year}年{month}月</span>
-          <button onClick={nextMonth} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-gray-600">▶</button>
-        </div>
+        <>
+          <div className="flex items-center justify-center gap-4 mb-1">
+            <button onClick={prevMonth} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-gray-600">◀</button>
+            <span className="text-lg font-bold text-gray-800 min-w-[120px] text-center">{year}年{month}月分</span>
+            <button onClick={nextMonth} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-gray-600">▶</button>
+          </div>
+          <p className="text-xs text-gray-400 text-center mb-5">
+            {fy}年{fm}月{fd}日 〜 {year}年{tm}月{td}日
+          </p>
+
+          {/* 施設フィルター */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {["", ...FACILITY_NAMES].map((f) => (
+              <button key={f} onClick={() => setFacilityFilter(f)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  facilityFilter === f
+                    ? "bg-blue-600 border-blue-600 text-white"
+                    : "bg-white border-gray-300 text-gray-600 hover:border-blue-400"
+                }`}>
+                {f === "" ? "全施設" : f}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {loading && <div className="text-center py-8 text-gray-400">読み込み中...</div>}
 
       {!loading && selectedStaff && (
         <>
-          {/* 月間サマリー */}
+          {/* サマリー */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-4 mb-6">
-            <p className="text-sm font-semibold text-blue-700 mb-3">{year}年{month}月の集計</p>
+            <p className="text-sm font-semibold text-blue-700 mb-3">
+              {year}年{month}月分の集計{facilityFilter ? `（${facilityFilter}）` : ""}
+            </p>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <p className="text-xs text-gray-500">レッスン</p>
@@ -180,13 +218,13 @@ export default function MyRecordsPage() {
           </div>
 
           {/* レコード一覧 */}
-          {records.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-400 text-sm">
-              この月の記録はありません
+              この期間の記録はありません
             </div>
           ) : (
             <div className="space-y-3">
-              {records.map((r) => {
+              {filtered.map((r) => {
                 const lesson = lessonOf(r);
                 const mt     = mtOf(r);
                 return (
@@ -246,14 +284,11 @@ export default function MyRecordsPage() {
             )}
 
             <div className="space-y-4">
-              {/* 日付 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">日付</label>
                 <input type="date" name="work_date" value={editForm.work_date} onChange={handleEditChange}
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400" />
               </div>
-
-              {/* 勤務場所 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">勤務場所</label>
                 <select name="facility_name" value={editForm.facility_name} onChange={handleEditChange}
@@ -262,8 +297,6 @@ export default function MyRecordsPage() {
                   {FACILITY_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
-
-              {/* 業務種別 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">業務種別</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -281,8 +314,6 @@ export default function MyRecordsPage() {
                   ))}
                 </div>
               </div>
-
-              {/* コマ数 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">コマ数</label>
                 <div className="space-y-2">
@@ -301,8 +332,6 @@ export default function MyRecordsPage() {
                   ))}
                 </div>
               </div>
-
-              {/* メモ */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">メモ</label>
                 <textarea name="memo" value={editForm.memo} onChange={handleEditChange} rows={4}
