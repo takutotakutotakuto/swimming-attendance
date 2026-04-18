@@ -15,35 +15,37 @@
   overflow: hidden;
 }
 
-/* ヘッダー */
+/* ヘッダー全体（年月行＋曜日行） */
 .react-datepicker__header {
   background-color: #2563eb !important;
   border-bottom: none !important;
-  padding: 12px 0 8px !important;
+  padding: 8px 0 4px !important;
 }
 
-/* 年月テキスト */
-.react-datepicker__current-month {
-  color: #fff !important;
-  font-size: 1.05rem !important;
-  font-weight: 700 !important;
+/* 曜日行の背景も確実に青に */
+.react-datepicker__day-names {
+  background-color: #2563eb !important;
+  padding-bottom: 4px !important;
 }
 
-/* 曜日ヘッダー */
+/* 曜日ラベル（月〜日）共通：白 */
 .react-datepicker__day-name {
-  color: rgba(255,255,255,0.85) !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
   width: 2.6rem !important;
   line-height: 2.2rem !important;
   font-size: 0.85rem !important;
 }
 
-/* 前月・次月ナビボタン */
+/* 土（6番目）・日（7番目）の曜日ラベルをオレンジ */
+.react-datepicker__day-names .react-datepicker__day-name:nth-child(6),
+.react-datepicker__day-names .react-datepicker__day-name:nth-child(7) {
+  color: #f97316 !important;
+}
+
+/* 前月・次月ナビボタン（renderCustomHeaderで非表示になるので不要だが念のため） */
 .react-datepicker__navigation-icon::before {
   border-color: #fff !important;
-}
-.react-datepicker__navigation {
-  top: 12px !important;
 }
 
 /* 日付セル */
@@ -52,10 +54,17 @@
   line-height: 2.4rem !important;
   font-size: 0.95rem !important;
   border-radius: 50% !important;
-  color: #1f2937;
+  color: #1f2937 !important;
+  margin: 2px !important;
 }
 
-/* 選択された日 */
+/* 土（6番目）・日（7番目）の日付セルをオレンジ */
+.react-datepicker__week .react-datepicker__day:nth-child(6),
+.react-datepicker__week .react-datepicker__day:nth-child(7) {
+  color: #f97316 !important;
+}
+
+/* 選択された日（青背景・白文字） */
 .react-datepicker__day--selected,
 .react-datepicker__day--keyboard-selected {
   background-color: #2563eb !important;
@@ -67,30 +76,11 @@
 .react-datepicker__day--today {
   font-weight: 700 !important;
   border: 2px solid #2563eb !important;
-  border-radius: 50% !important;
 }
 
 /* ホバー */
 .react-datepicker__day:hover {
   background-color: #eff6ff !important;
-  border-radius: 50% !important;
-}
-
-/* 土曜（7列目 = .react-datepicker__day--sat は存在しないので列セレクタで指定） */
-/* 月曜始まりなので: 月火水木金土日 → 土=6列目, 日=7列目 */
-.react-datepicker__day-name:nth-child(6),
-.react-datepicker__day:nth-child(6) {
-  color: #f97316 !important; /* オレンジ */
-}
-.react-datepicker__day-name:nth-child(7),
-.react-datepicker__day:nth-child(7) {
-  color: #f97316 !important; /* オレンジ */
-}
-
-/* 選択済みの土日もオレンジ維持（背景は青、文字白） */
-.react-datepicker__day--selected:nth-child(6),
-.react-datepicker__day--selected:nth-child(7) {
-  color: #fff !important;
 }
 
 /* 他の月の日付 */
