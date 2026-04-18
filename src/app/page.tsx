@@ -159,6 +159,15 @@ export default function StaffInputPage() {
             }}
             customInput={<CustomDateInput dateStr={formatDateJa(form.work_date)} />}
             wrapperClassName="w-full"
+            renderCustomHeader={({ date, decreaseMonth, increaseMonth }) => (
+              <div className="flex items-center justify-between px-3 py-1">
+                <button onClick={decreaseMonth} className="text-white text-lg font-bold px-2 hover:opacity-70">‹</button>
+                <span className="text-white font-bold text-base">
+                  {date.getFullYear()}年{date.getMonth() + 1}月
+                </span>
+                <button onClick={increaseMonth} className="text-white text-lg font-bold px-2 hover:opacity-70">›</button>
+              </div>
+            )}
           />
         </div>
 

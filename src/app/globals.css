@@ -1,3 +1,99 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =============================
+   react-datepicker カスタムデザイン
+   ============================= */
+
+/* カレンダー全体を大きく */
+.react-datepicker {
+  font-size: 1rem !important;
+  border-radius: 1rem !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+  overflow: hidden;
+}
+
+/* ヘッダー */
+.react-datepicker__header {
+  background-color: #2563eb !important;
+  border-bottom: none !important;
+  padding: 12px 0 8px !important;
+}
+
+/* 年月テキスト */
+.react-datepicker__current-month {
+  color: #fff !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+}
+
+/* 曜日ヘッダー */
+.react-datepicker__day-name {
+  color: rgba(255,255,255,0.85) !important;
+  font-weight: 600 !important;
+  width: 2.6rem !important;
+  line-height: 2.2rem !important;
+  font-size: 0.85rem !important;
+}
+
+/* 前月・次月ナビボタン */
+.react-datepicker__navigation-icon::before {
+  border-color: #fff !important;
+}
+.react-datepicker__navigation {
+  top: 12px !important;
+}
+
+/* 日付セル */
+.react-datepicker__day {
+  width: 2.6rem !important;
+  line-height: 2.4rem !important;
+  font-size: 0.95rem !important;
+  border-radius: 50% !important;
+  color: #1f2937;
+}
+
+/* 選択された日 */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #2563eb !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+/* 今日 */
+.react-datepicker__day--today {
+  font-weight: 700 !important;
+  border: 2px solid #2563eb !important;
+  border-radius: 50% !important;
+}
+
+/* ホバー */
+.react-datepicker__day:hover {
+  background-color: #eff6ff !important;
+  border-radius: 50% !important;
+}
+
+/* 土曜（7列目 = .react-datepicker__day--sat は存在しないので列セレクタで指定） */
+/* 月曜始まりなので: 月火水木金土日 → 土=6列目, 日=7列目 */
+.react-datepicker__day-name:nth-child(6),
+.react-datepicker__day:nth-child(6) {
+  color: #f97316 !important; /* オレンジ */
+}
+.react-datepicker__day-name:nth-child(7),
+.react-datepicker__day:nth-child(7) {
+  color: #f97316 !important; /* オレンジ */
+}
+
+/* 選択済みの土日もオレンジ維持（背景は青、文字白） */
+.react-datepicker__day--selected:nth-child(6),
+.react-datepicker__day--selected:nth-child(7) {
+  color: #fff !important;
+}
+
+/* 他の月の日付 */
+.react-datepicker__day--outside-month {
+  color: #d1d5db !important;
+}
