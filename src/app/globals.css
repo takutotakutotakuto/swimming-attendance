@@ -35,6 +35,7 @@
   width: 2.6rem !important;
   line-height: 2.2rem !important;
   font-size: 0.85rem !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
 }
 
 /* 土（6番目）・日（7番目）の曜日ラベルをオレンジ */
@@ -56,6 +57,7 @@
   border-radius: 50% !important;
   color: #1f2937 !important;
   margin: 2px !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15) !important;
 }
 
 /* 土（6番目）・日（7番目）の日付セルをオレンジ */
