@@ -15,16 +15,16 @@
   overflow: hidden;
 }
 
-/* ヘッダー全体（年月行＋曜日行） */
+/* ヘッダー全体（年月行）：暗い青 */
 .react-datepicker__header {
-  background-color: #2563eb !important;
+  background-color: #1d4ed8 !important;
   border-bottom: none !important;
   padding: 8px 0 4px !important;
 }
 
-/* 曜日行：年月より少し暗い青 */
+/* 曜日行：明るい青 */
 .react-datepicker__day-names {
-  background-color: #1d4ed8 !important;
+  background-color: #2563eb !important;
   padding: 4px 0 6px !important;
 }
 
