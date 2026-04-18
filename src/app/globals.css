@@ -22,12 +22,10 @@
   padding: 8px 0 4px !important;
 }
 
-/* 曜日行の背景も確実に青に・上に境界線 */
+/* 曜日行：年月より少し暗い青 */
 .react-datepicker__day-names {
-  background-color: #2563eb !important;
-  padding-bottom: 4px !important;
-  border-top: 1px solid rgba(255,255,255,0.35) !important;
-  margin-top: 6px !important;
+  background-color: #1d4ed8 !important;
+  padding: 4px 0 6px !important;
 }
 
 /* 曜日ラベル（月〜日）共通：白 */
