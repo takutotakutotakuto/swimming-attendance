@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { STAFF_NAMES, FACILITY_NAMES, LESSON_TYPES, SLOT_TYPES, SlotKey, PT_FACILITY } from "@/config/settings";
+import { STAFF_NAMES, FACILITY_NAMES, LESSON_TYPES, SLOT_TYPES, SlotKey, SEPARATE_FACILITIES } from "@/config/settings";
 import type { AttendanceRecord, AttendanceFormData } from "@/types";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -133,8 +133,8 @@ export default function MyRecordsPage() {
     ? records.filter((r) => r.facility_name === facilityFilter)
     : records;
 
-  // 集計（フィルター後・PT施設は合計に含めない）
-  const nonPT       = filtered.filter(r => r.facility_name !== PT_FACILITY);
+  // 集計（フィルター後・別カウント施設は合計に含めない）
+  const nonPT       = filtered.filter(r => !(SEPARATE_FACILITIES as readonly string[]).includes(r.facility_name));
   const totalLesson = nonPT.reduce((s, r) => s + lessonOf(r), 0);
   const totalMt     = nonPT.reduce((s, r) => s + mtOf(r), 0);
   const workDays    = new Set(nonPT.map((r) => r.work_date)).size;
