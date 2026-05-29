@@ -210,9 +210,10 @@ export default function AdminPage() {
     return Object.entries(map).map(([name, v]) => ({
       name,
       byCol: v.byCol,
-      totalLesson:  Object.values(v.byCol).reduce((s, x) => s + x.lesson, 0),
-      totalSpecial: Object.values(v.byCol).reduce((s, x) => s + x.special, 0),
-      totalMt:      Object.values(v.byCol).reduce((s, x) => s + x.mt, 0),
+      // PT施設は合計に含めない
+      totalLesson:  Object.entries(v.byCol).filter(([k]) => k !== PT_FACILITY).reduce((s, [, x]) => s + x.lesson, 0),
+      totalSpecial: Object.entries(v.byCol).filter(([k]) => k !== PT_FACILITY).reduce((s, [, x]) => s + x.special, 0),
+      totalMt:      Object.entries(v.byCol).filter(([k]) => k !== PT_FACILITY).reduce((s, [, x]) => s + x.mt, 0),
       workDays:     v.dates.size,
       separateDays: Object.fromEntries(Object.entries(v.sepDates).map(([f, s]) => [f, s.size])),
     })).sort((a, b) => (b.totalLesson + b.totalSpecial + b.totalMt) - (a.totalLesson + a.totalSpecial + a.totalMt));
